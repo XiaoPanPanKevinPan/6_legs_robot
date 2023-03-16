@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html><head>
+	<title>Robojax PCA9685 ESP32 Servo Control</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script>
+		const d = document,
+		      qry  = (...x) => d.querySelector(...x);
+		      qrys = (...x) => d.querySelectorAll(...x);
+
+		const generateCtrl = (host) => {	
+			fetch(host + "info")
+			.then(res => res.json())
+			.then(res => {
+				const {num, runningAll, min, max, shown, pos} = res.data;
+
+				{ // button [Start/Stop all servo]
+					const allServoBtn = d.createElement("button");
+					d.body.appendChild(allServoBtn);
+
+					allServoBtn.innerHTML = `${runningAll ? "Stop" : "Start"} All Servo`;
+					allServoBtn.addEventListener("click", e => {
+						if(e.target.innerText == "Start All Servo"){
+							fetch(host + "servo?do=all");
+							e.target.innerHTML = "Stop All Servo";
+						} else {
+							fetch(host + "servo?do=");
+							e.target.innerHTML = "Start All Servo";
+						}
+					});
+				}
+
+				const ctrl = d.createElement("table");
+				d.body.appendChild(ctrl);
+				ctrl.id = "ctrl";
+				ctrl.innerHTML = `<tr><th>#</th><th>Deg</th></tr>`;
+
+				for(let i = 0; i < res.data.num; i++){
+					if(!shown[i]) continue;
+
+					const tr = d.createElement("tr");
+					ctrl.appendChild(tr);
+					tr.dataset.servo = i;
+					tr.innerHTML = `
+						<td>${i}</td>
+						<td class="servo">
+							<span>${pos[i]}</span>
+							<button>-</button>
+							<input type="range" max="${max[i]}" min="${min[i]}" value="${pos[i]}" />
+							<button>+</button>
+						</td>
+					`;
+
+					const [disp, decBtn, input, incBtn] = [...tr.children[1].children];
+					decBtn.addEventListener("click", () => {
+						input.value--;
+						input.dispatchEvent(new Event("change"));
+					});
+					incBtn.addEventListener("click", () => {
+						input.value++;
+						input.dispatchEvent(new Event("change"));
+					});
+					input.addEventListener("change", e => {
+						disp.innerHTML = "" + input.value;
+						fetch(host + "servo?" + new URLSearchParams({
+							servo: tr.dataset.servo,
+							deg: input.value
+						}));
+					});
+				}
+			})
+			.catch(err => console.log("the failure is nonsense", err));
+		};
+
+		addEventListener("load", ()=>{
+			let hostInput = qry("#hostIP");
+			hostInput.value = localStorage.getItem("host") ?? "";
+			hostInput.addEventListener("change", e => {
+				let hostIP = e.target.value;
+				if(!hostIP.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) return;
+
+				localStorage.setItem("hostIP", hostIP);
+	
+				let host = `http://${hostIP}/`;
+				fetch(host)
+				.then(()=>{
+					hostInput.setCustomValidity("");
+					generateCtrl(host);
+				})
+				.catch(()=>{
+					hostInput.setCustomValidity("The board is not running.")}
+				);
+			});
+			hostInput.dispatchEvent(new Event("change"));
+		});
+	</script>
+	<style>
+		* { box-sizing: border-box }
+		td.servo span {
+			display: inline-block;
+			min-width: 4ch;
+			text-align: center;
+		}
+		#hostIP:invalid {
+			background-color: red;
+			color: white;
+		}
+	</style>
+</head><body>
+	<noscript><span color="white" bgcolor="red"><b>Please enable JavaScript in your browser's settings.</b></span></noscript>
+	<h1>Robojax PCA9685 ESP32 Servo</h1>
+	IP: <input id="hostIP" placeholder="The local IP of the board. Shown in the serial window." pattern="^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"/>
+</body></html>
+
