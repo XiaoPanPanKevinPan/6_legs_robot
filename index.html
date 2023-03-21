@@ -34,7 +34,46 @@
 				ctrl.id = "ctrl";
 				ctrl.innerHTML = `<tr><th>#</th><th>Deg</th></tr>`;
 
-				for(let i = 0; i < res.data.num; i++){
+				{ // for All servos
+					const tr = d.createElement("tr");
+					ctrl.appendChild(tr);
+
+					tr.id = "all";
+					let pos = 0;
+
+					tr.innerHTML = `
+						<td>All</td>
+						<td class="servo">
+							<span>${pos}</span>
+							<button>-</button>
+							<input type="range" max="180" min="0" value="${pos}" />
+							<button>+</button>
+						</td>
+					`;
+
+					const [disp, decBtn, input, incBtn] = [...tr.children[1].children];
+					decBtn.addEventListener("click", () => {
+						input.value--;
+						input.dispatchEvent(new Event("change"));
+					});
+					incBtn.addEventListener("click", () => {
+						input.value++;
+						input.dispatchEvent(new Event("change"));
+					});
+					input.addEventListener("change", e => {
+						disp.innerHTML = `${input.value}`;
+						for(let i = 0; i < num; i++){
+							if(!shown[i]) continue;
+							fetch(host + "servo?" + new URLSearchParams({
+								servo: i,
+								deg: input.value
+							}));
+						}
+					});
+
+				}
+
+				for(let i = 0; i < num; i++){
 					if(!shown[i]) continue;
 
 					const tr = d.createElement("tr");
@@ -60,7 +99,7 @@
 						input.dispatchEvent(new Event("change"));
 					});
 					input.addEventListener("change", e => {
-						disp.innerHTML = "" + input.value;
+						disp.innerHTML = `${input.value}`;
 						fetch(host + "servo?" + new URLSearchParams({
 							servo: tr.dataset.servo,
 							deg: input.value
@@ -95,11 +134,18 @@
 	</script>
 	<style>
 		* { box-sizing: border-box }
-		td.servo span {
+
+		#ctrl tr td:first-child {
+			min-width: 4ch;
+			text-align: center;
+		}
+
+		#ctrl td.servo span {
 			display: inline-block;
 			min-width: 4ch;
 			text-align: center;
 		}
+
 		#hostIP:invalid {
 			background-color: red;
 			color: white;
