@@ -69,6 +69,10 @@
 								deg: input.value
 							}));
 						}
+						[...ctrl.querySelectorAll(":not(#all) td.servo span")]
+							.forEach(i => i.innerHTML = `${input.value}`);
+						[...ctrl.querySelectorAll(":not(#all) td.servo input")]
+							.forEach(i => i.value = `${input.value}`);
 					});
 
 				}
