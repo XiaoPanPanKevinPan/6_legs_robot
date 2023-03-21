@@ -94,10 +94,10 @@ int allServoMax[] = {
 }; 
 // initial position of servos			 
 int allServoPosition[] = {
-	0, 0, 0, 0, 0, 0, 0, 0,	//	1 to  8
-	0, 0, 0, 0, 0, 0, 0, 0,	//	9 to 16
-	0, 0, 0, 0, 0, 0, 0, 0,	// 17 to 24
-	0, 0, 0, 0, 0, 0, 0, 0  // 25 to 32								
+	90, 90, 90, 90, 90, 90, 90, 90, //	1 to  8
+	90, 90, 90, 90, 90, 90, 90, 90, //	9 to 16
+	90, 90, 90, 90, 90, 90, 90, 90, // 17 to 24
+	90, 90, 90, 90, 90, 90, 90, 90, // 25 to 32								
 };
 int servoNumber = 100; //servo to move
 int buttonPushed = 0;
