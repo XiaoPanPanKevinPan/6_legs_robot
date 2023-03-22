@@ -119,15 +119,13 @@
 			hostInput.value = localStorage.getItem("hostIP") ?? "";
 			hostInput.addEventListener("change", e => {
 				let hostIP = e.target.value;
-				if(!hostIP.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) return;
-
-				localStorage.setItem("hostIP", hostIP);
 	
 				let host = `http://${hostIP}/`;
 				fetch(`${host}/robot`)
 				.then(()=>{
 					hostInput.setCustomValidity("");
 					generateCtrl(host);
+					localStorage.setItem("hostIP", hostIP);
 				})
 				.catch(()=>{
 					hostInput.setCustomValidity("The board is not running.")}
@@ -158,6 +156,6 @@
 </head><body>
 	<noscript><span color="white" bgcolor="red"><b>Please enable JavaScript in your browser's settings.</b></span></noscript>
 	<h1>Robojax PCA9685 ESP32 Servo</h1>
-	IP: <input id="hostIP" placeholder="The local IP of the board. Shown in the serial window." pattern="^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"/>
+	IP: <input id="hostIP" placeholder="The local IP of the board. Shown in the serial window." />
 </body></html>
 
