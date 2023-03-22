@@ -121,7 +121,7 @@
 				let hostIP = e.target.value;
 	
 				let host = `http://${hostIP}/`;
-				fetch(`${host}/robot`)
+				fetch(`${host}robot`)
 				.then(()=>{
 					hostInput.setCustomValidity("");
 					generateCtrl(host);
