@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html><head>
+	<title>Robot Control - servo by servo</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script type="module">
+		import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+
+		 createApp({
+			data: () => ({
+				connected: false,
+				hostIP: localStorage.getItem("hostIP") ?? "",
+				table: []
+			}),
+			methods: {
+				hostIPChanged(e){
+					const hostInput = e.target;
+					hostInput.setCustomValidity("");
+
+					if(!this.hostIP.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) return;
+					localStorage.setItem("hostIP", this.hostIP);
+
+					let host = `http://${hostIP}/`;
+					fetch(`${host}/robot`)
+					.then(()=>{
+						this.connected = true;
+						this.generateCtrl(host);
+					})
+					.catch(()=>{ hostInput.setCustomValidity("The board is not running.") });
+				},
+				generateCtrl: host => fetch(`${host}info`)
+					.then(res => res.json())
+					.then(res => {
+						const {num, runningAll, min, max, shown, pos} = res.data;
+
+						for(let i = 0; i < num; i++){
+							this.table.push({
+								num: i,
+								min: min[i],
+								max: max[i],
+								shown: shown[i],
+								pos: pos[i]
+							})
+						}
+					})
+					.catch(e => console.log("The error is nonsense", e)),
+				inc(e){ this.table[e.target.dataset.servo].pos++ },
+				dec(e){ this.table[e.target.dataset.servo].pos-- },
+				mov(e){
+					fetch(host + "servo?" + new URLSearchParams({
+						servo: e.target.dataset.servo,
+						deg: e.target.value
+					}));
+				}
+			}
+	  	}).mount('#app');
+
+	</script>
+	<style>
+		* { box-sizing: border-box }
+
+		#ctrl tr td:first-child {
+			min-width: 4ch;
+			text-align: center;
+		}
+
+		#ctrl td.servo span {
+			display: inline-block;
+			min-width: 4ch;
+			text-align: center;
+		}
+
+		#hostIP:invalid {
+			background-color: red;
+			color: white;
+		}
+	</style>
+</head><body>
+	<noscript><span color="white" bgcolor="red"><b>Please enable JavaScript in your browser's settings.</b></span></noscript>
+	<main id="app">
+		IP: <input v-model="hostIP" @change="hostIPChanged" id="hostIP" placeholder="The local IP of the board. Shown in the serial window." pattern="^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"/>
+		
+		<table id="ctrl" v-if="connected">
+			<tr><th>#</th><th>Deg</th></tr>
+			<tr v-for="row in table" v-if="row.shown">
+				<td>{{row.num}}</td>
+				<td data-servo="row.num">
+					<span>{{row.pos}}</span>
+					<button :data-servo="row.num" @click="inc">-</button>
+					<input type="range" :max="row.max" :min="row.min" v-model="row.pos" :data-servo="row.num" @change="mov" />
+					<button :data-servo="row.num" @click="dec">+</button>
+				<td>
+			</tr>
+		</table>
+	</main>
+</body></html>
