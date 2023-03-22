@@ -94,10 +94,10 @@ int allServoMax[] = {
 }; 
 // initial position of servos			 
 int allServoPosition[] = {
-	90, 90, 90, 90, 90, 90, 90, 90, //	1 to  8
-	90, 90, 90, 90, 90, 90, 90, 90, //	9 to 16
-	90, 90, 90, 90, 90, 90, 90, 90, // 17 to 24
-	90, 90, 90, 90, 90, 90, 90, 90, // 25 to 32								
+	90, 100, 60, 100, 80, 75, 110, 100, //	1 to  8
+	80, 110, 90, 90, 90, 90, 90, 90, //	9 to 16
+	90, 95, 85, 95, 120, 70, 100, 85, // 17 to 24
+	95, 90, 90, 90, 90, 90, 90, 90, // 25 to 32								
 };
 int servoNumber = 100; //servo to move
 int buttonPushed = 0;
@@ -110,12 +110,19 @@ int angleToPulse(int ang); //this is prototype of function defined at the end of
 #include "PCA9684_32Servo_ESP32.h"
 	
 #include <WiFi.h>
+#include <WiFiMulti.h>
 // #include <WiFiClient.h>
+
+WiFiMulti wifiMulti;
+
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
 const char *ssid = "Android xxa5";
 const char *password = "beb5cb590c36";
+
+const char *ssid2 = "toshi";
+const char *password2 = "1357924680";
 
 WebServer server(80);
 
@@ -194,24 +201,30 @@ void setup() {
 			board2.setPWM(i-15, 0, angleToPulse(allServoPosition[i]) );				
 		}
 	}
-		Serial.begin(115200);
-		Serial.println("32 channel Servo test!");
+
+	Serial.begin(115200);
+	delay(10);
+	Serial.println("32 channel Servo test!");
 
 	// Servo control using ESP32 from Robojax.com
 
-	WiFi.mode(WIFI_STA);
-	WiFi.begin(ssid, password);
-	Serial.println("");
+	// WiFi.mode(WIFI_STA);
+	// WiFi.begin(ssid, password);
+
+	wifiMulti.addAP(ssid, password);
+	wifiMulti.addAP(ssid2, password2);
+
+	Serial.println("Connecting Wifi");
 		
 	// Wait for connection
-	while (WiFi.status() != WL_CONNECTED) {
+	while (wifiMulti.run() != WL_CONNECTED) { 
 		delay(500);
 		Serial.print(".");
 	}
 
 	Serial.println("");
 	Serial.print("Connected to ");
-	Serial.println(ssid);
+	Serial.println(WiFi.SSID());
 	Serial.print("IP address: ");
 	Serial.println(WiFi.localIP());
 
@@ -222,7 +235,8 @@ void setup() {
 	}
 
 	server.enableCORS();
-	server.on("/", [](){ server.send(200, "text/html", "Please open index.html in your browser"); });
+	server.on("/", [](){ server.send(200, "text/pure", "Please open index.html in your browser"); });
+	server.on("/robot", [](){ server.send(200, "text/html", "6_legs_robot"); });
 	server.on("/servo", HTTP_GET, handleServo); 
 	server.on("/info", handleInfo);
 
