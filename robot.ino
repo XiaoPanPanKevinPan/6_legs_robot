@@ -1,3 +1,5 @@
+#include <vector>
+using namespace std;
 /*
 * Original PCA9685 Module library sourse: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library
  * 
@@ -53,7 +55,7 @@ or make donation using PayPal http://robojax.com/L/?id=64
 // called this way, it uses the default address 0x40
 Adafruit_PWMServoDriver board1 = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver board2 = Adafruit_PWMServoDriver(0x41);
-int maximumServo = 32; //how many servos are connected
+int maximumServo = 32; // how many servos are connected
 
 // Depending on your servo make, the pulse width min and max may vary, you 
 // want these to be as small/large as possible without hitting the hard stop
@@ -78,11 +80,11 @@ bool servoShown[] = {
 	1, 0, 0, 0, 0, 0, 0, 0,
 };
 
-int allServoMin[]={
+int allServoMin[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, //	1 to  8
 	0, 0, 0, 0, 0, 0, 0, 0, //	9 to 16
 	0, 0, 0, 0, 0, 0, 0, 0, // 17 to 24
-	0, 0, 0, 0, 0, 0, 0, 0  // 25 to 32										
+	0, 0, 0, 0, 0, 0, 0, 0  // 25 to 32	
 }; 
 //maximum value of each servo
 
@@ -100,7 +102,7 @@ int allServoPosition[] = {
 	95, 90, 90, 90, 90, 90, 90, 90, // 25 to 32								
 };
 int servoNumber = 100; //servo to move
-int buttonPushed = 0;
+int buttonPushed = 0, batchMove = 0;
 int allServo = 0;
 
 void handleServo();//this is prototype of function defined at the end of this code
@@ -238,6 +240,7 @@ void setup() {
 	server.on("/", [](){ server.send(200, "text/pure", "Please open index.html in your browser"); });
 	server.on("/robot", [](){ server.send(200, "text/html", "6_legs_robot"); });
 	server.on("/servo", HTTP_GET, handleServo); 
+	server.on("/servos", HTTP_GET, handleServos);
 	server.on("/info", handleInfo);
 
 	server.onNotFound(handleNotFound);
@@ -250,8 +253,8 @@ void loop() {
 	if(allServo){
 		for(int angle = servoAngleMin; angle <= servoAngleMax; angle += servoStep){
 			for(int i = 0; i < 16; i++) {			 
-						board2.setPWM(i, 0, angleToPulse(angle));
-						board1.setPWM(i, 0, angleToPulse(angle));
+				board2.setPWM(i, 0, angleToPulse(angle));
+				board1.setPWM(i, 0, angleToPulse(angle));
 			}
 			delay(stepDelay);
 		}
@@ -268,6 +271,17 @@ void loop() {
 		}
 	}
 	buttonPushed = 0; 
+
+	if(batchMove){
+		for(int i = 0; i < maximumServo; i++) {
+			if(i < 16) {
+				board1.setPWM(i	  , 0, angleToPulse(allServoPosition[i]) ); 
+			} else {
+				board2.setPWM(i-15, 0, angleToPulse(allServoPosition[i]) );				
+    		}
+		}
+	}
+  batchMove = 0;
 }
 
 
@@ -296,7 +310,55 @@ void handleServo() {
 		buttonPushed = 1;
 	}
 	// handleRoot();
-	server.send(200, "text/html", "Finished.");
+	server.send(200, "text/plain", "Finished.");
+}
+
+vector<String> splitString(String source, String splitter = ""){
+	const int splLen = splitter.length(),
+	          allLen = source.length();
+
+	vector<String> result;
+	int indexL = 0, indexR = 0;
+
+	while(indexL < allLen){
+		indexR = source.indexOf(splitter, indexL);
+		if(indexR == -1) indexR = allLen;
+		if(splLen == 0) indexR += 1;
+
+		result.push_back(source.substring(indexL, indexR));
+
+		indexL = indexR + splLen;
+	}
+
+	return result;
+}
+
+void handleServos(){
+	vector<int> servos, degs;
+
+	{
+		vector<String> servos_str = splitString(server.arg("servos"), ","),
+					   degs_str = splitString(server.arg("degs"), ",");
+		for(String str : servos_str){
+			servos.push_back(str.toInt());
+		}
+		for(String str : degs_str){
+			degs.push_back(str.toInt());
+		}
+	}
+
+	if(servos.size() == 0 || degs.size() == 0)
+		return server.send(400, "text/plain", "Both the \"servos\" and \"degs\" request arguments that are separated by a comma cannot have a length of 0.");
+
+	for(int i = 0; i < servos.size(); i++){
+		if( !(0 < servos[i] && servos[i] < maximumServo && servoShown[servos[i]]) )
+			continue;
+
+		allServoPosition[servos[i]] = degs[i < degs.size() ? i : degs.size() - 1];
+	}
+
+	batchMove = 1;
+	server.send(200, "text/plain", "Finished");
 }
 
 /*
