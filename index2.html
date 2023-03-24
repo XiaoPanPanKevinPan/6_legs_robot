@@ -16,41 +16,44 @@
 					const hostInput = e.target;
 					hostInput.setCustomValidity("");
 
-					if(!this.hostIP.match(/^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) return;
-					localStorage.setItem("hostIP", this.hostIP);
-
-					let host = `http://${hostIP}/`;
+					let host = `http://${this.hostIP}/`;
 					fetch(`${host}/robot`)
 					.then(()=>{
+						localStorage.setItem("hostIP", this.hostIP);
 						this.connected = true;
 						this.generateCtrl(host);
 					})
 					.catch(()=>{ hostInput.setCustomValidity("The board is not running.") });
 				},
-				generateCtrl: host => fetch(`${host}info`)
+				generateCtrl(host){
+					fetch(`${host}info`)
 					.then(res => res.json())
 					.then(res => {
 						const {num, runningAll, min, max, shown, pos} = res.data;
 
 						for(let i = 0; i < num; i++){
+							if(!shown[i]) continue;
 							this.table.push({
 								num: i,
 								min: min[i],
 								max: max[i],
-								shown: shown[i],
 								pos: pos[i]
 							})
 						}
 					})
-					.catch(e => console.log("The error is nonsense", e)),
-				inc(e){ this.table[e.target.dataset.servo].pos++ },
-				dec(e){ this.table[e.target.dataset.servo].pos-- },
+					.catch(e => console.log("The error is nonsense", e))
+				},
+				inc(e){ this.table.filter(r => r.num == e.target.dataset.servo)[0].pos++ },
+				dec(e){ this.table.filter(r => r.num == e.target.dataset.servo)[0].pos-- },
 				mov(e){
-					fetch(host + "servo?" + new URLSearchParams({
+					fetch(`http://${this.hostIP}/servo?` + new URLSearchParams({
 						servo: e.target.dataset.servo,
 						deg: e.target.value
 					}));
 				}
+			},
+			mounted(){
+				document.querySelector("#hostIP").dispatchEvent(new Event("change"));
 			}
 	  	}).mount('#app');
 
@@ -63,7 +66,7 @@
 			text-align: center;
 		}
 
-		#ctrl td.servo span {
+		#ctrl tr td:nth-child(2) span {
 			display: inline-block;
 			min-width: 4ch;
 			text-align: center;
@@ -81,9 +84,9 @@
 		
 		<table id="ctrl" v-if="connected">
 			<tr><th>#</th><th>Deg</th></tr>
-			<tr v-for="row in table" v-if="row.shown">
+			<tr v-for="row in table">
 				<td>{{row.num}}</td>
-				<td data-servo="row.num">
+				<td data-servo="r.num">
 					<span>{{row.pos}}</span>
 					<button :data-servo="row.num" @click="inc">-</button>
 					<input type="range" :max="row.max" :min="row.min" v-model="row.pos" :data-servo="row.num" @change="mov" />
