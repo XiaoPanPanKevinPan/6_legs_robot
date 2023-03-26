@@ -214,10 +214,6 @@ void setup() {
 	delay(10);
 	Serial.println("32 channel Servo test!");
 
-	// Servo control using ESP32 from Robojax.com
-
-	// WiFi.mode(WIFI_STA);
-	// WiFi.begin(ssid, password);
 	if(wifiStationMode){
 		WiFi.softAP(staSsid, staPassword);
 		WiFi.softAPConfig(staLocalIp, staGateway, staSubnetMask);
@@ -285,10 +281,10 @@ void loop() {
 	if(batchMove){
 		for(int i = 0; i < maximumServo; i++) {
 			if(i < 16) {
-				board1.setPWM(i		, 0, angleToPulse(allServoPosition[i]) ); 
+				board1.setPWM(i   , 0, angleToPulse(allServoPosition[i]) ); 
 			} else {
 				board2.setPWM(i-15, 0, angleToPulse(allServoPosition[i]) );				
-				}
+			}
 		}
 	}
 	batchMove = 0;
@@ -309,7 +305,7 @@ void handleServo() {
 	allServo = server.arg("do") == "all" ? 1 : 0;
 
 	int argServo = server.arg("servo").toInt(),
-			argDeg = server.arg("deg").toInt();
+	    argDeg = server.arg("deg").toInt();
 	if(
 		0 <= argServo && argServo < maximumServo &&
 		allServoMin[argServo] <= argDeg && argDeg <= allServoMax[argServo]
@@ -348,7 +344,7 @@ void handleServos(){
 
 	{
 		vector<String> servos_str = splitString(server.arg("servos"), ","),
-						 degs_str = splitString(server.arg("degs"), ",");
+		               degs_str = splitString(server.arg("degs"), ",");
 		for(String str : servos_str){
 			servos.push_back(str.toInt());
 		}
