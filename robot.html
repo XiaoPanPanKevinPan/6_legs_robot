@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html><head>
+	<title>Robot Control - servo by servo</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script type="module">
+		import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+
+		createApp({
+			data: () => ({
+				connected: false,
+				hostIP: localStorage.getItem("hostIP") ?? "",
+				/*ctrls: [{
+					name: "初始姿態",
+					servos: "1,2,3,4,5,6,7,8,9,16,17,18,19,20,21,22,23,24",
+					degs: "100,60,100,80,75,120,100,105,119,90,95,85,95,120,65,100,85,95",
+					style: ""
+				}]*/
+
+				ctrls: (() => {
+					const servos = "1,2,3,4,5,6,7,8,9,16,17,18,19,20,21,22,23,24",
+					      initDeg = [100,50,120,80,75,120,100,105,119,90,85,100,95,120,65,100,85,95],
+					      axesCorrection = [-1,-1,-1, -1,-1,-1, -1,-1,-1, 1,1,1, 1,1,1, 1,1,1,],
+					// (front, back) = (+, -)
+					// (up, down) = (+, -)
+					// (far, near) = (+, -)
+
+					      none = [0, 0, 0], deg = 30,
+					      push = [0, -deg, deg], hang = [0, deg, -deg],
+					      waveForw = [deg, 0, 0], waveBack = [-deg, 0, 0],
+
+					      arrToStr = (arr) => arr.reduce((tmp, cur) => tmp + `,${cur}`),
+					      add = (orig, delt) => orig.map((val, index) => val + delt[index]),
+					      mul = (arr1, arr2) => arr1.map((val, index) => val * arr2[index]),
+
+					      corr = (arr) => mul(arr, axesCorrection),
+					      comp = (...arrs) => add(initDeg, corr(arrs.reduce((tmp, cur) => tmp.concat(cur))));
+
+					let result = [], style = "";
+					result.push({
+						name: "初始姿態",
+						servos, style,
+						degs: arrToStr(initDeg),
+					});
+
+					const hf = add(hang, waveForw), hb = add(hang, waveBack), pf = add(push, waveForw), pb = add(push, waveBack); 
+
+					result.push({
+						name: "ready",
+						servos, style,
+						degs: comp(push, push, push, push, push, push)
+					});
+
+					result.push({
+						name: "00",
+						servos, style,
+						degs: comp(pb, hf, pb, hf, pb, hf)
+					});
+
+					result.push({
+						name: "01",
+						servos, style,
+						degs: comp(pb, pf, pb, pf, pb, pf)
+					});
+
+					result.push({
+						name: "10",
+						servos, style,
+						degs: comp(hf, pf, hf, pf, hf, pf)
+					});
+
+					/*result.push({
+						name: "11",
+						servos, style,
+						degs: comp(hf, pf, hf, pf, hf, pf)
+					});*/
+
+					result.push({
+						name: "20",
+						servos, style,
+						degs: comp(hf, pb, hf, pb, hf, pb)
+					});
+
+					result.push({
+						name: "21",
+						servos, style,
+						degs: comp(pf, pb, pf, pb, pf, pb)
+					});
+
+					result.push({
+						name: "30",
+						servos, style,
+						degs: comp(pf, hf, pf, hf, pf, hf)
+					});
+
+					/*result.push({
+						name: "31",
+						servos, style,
+						degs: comp(pf, hf, pf, hf, pf, hf)
+					});*/
+
+					result.push({
+						name: "hf",
+						servos, style,
+						degs: comp(hf, hf, hf, hf, hf, hf)
+					});
+					result.push({
+						name: "pf",
+						servos, style,
+						degs: comp(pf, pf, pf, pf, pf, pf)
+					});
+					result.push({
+						name: "hb",
+						servos, style,
+						degs: comp(hb, hb, hb, hb, hb, hb)
+					});
+					result.push({
+						name: "pb",
+						servos, style,
+						degs: comp(pb, pb, pb, pb, pb, pb)
+					});
+					return result
+				})()
+			}),
+			methods: {
+				hostIPChanged(e){
+					const hostInput = e.target;
+					hostInput.setCustomValidity("");
+
+					let host = `http://${this.hostIP}/`;
+					fetch(`${host}robot`)
+					.then(res=>res.text())
+					.then(()=>{	
+						localStorage.setItem("hostIP", this.hostIP);
+						this.connected = true;
+					})
+					.catch(()=>{ hostInput.setCustomValidity("The board is not running.") });
+				},
+				ctrlClicked(e){
+					let {servos, degs} = e.target.dataset;
+					fetch(`http://${this.hostIP}/servos?servos=${servos}&degs=${degs}`);
+				}
+			},
+			mounted(){
+				document.querySelector("#hostIP").dispatchEvent(new Event("change"));
+			}
+	  	}).mount('#app');
+
+	</script>
+	<style>
+		* { box-sizing: border-box }
+
+		#hostIP:invalid {
+			background-color: red;
+			color: white;
+		}
+	</style>
+</head><body>
+	<noscript><span color="white" bgcolor="red"><b>Please enable JavaScript in your browser's settings.</b></span></noscript>
+	<main id="app">
+		IP: <input v-model="hostIP" @change="hostIPChanged" id="hostIP" placeholder="The local IP of the board. Shown in the serial window." />
+
+		<div id="ctrl" v-if="connected">
+			<button
+				v-for="ctrl in ctrls"
+				:style="ctrl.style"
+				@click="ctrlClicked"
+				:data-servos="ctrl.servos"
+				:data-degs="ctrl.degs"
+			>{{ctrl.name}}</button>
+		</div>
+	</main>
+</body></html>
