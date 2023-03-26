@@ -1,5 +1,5 @@
 #include <vector>
-using namespace std;
+using namespace std; // so we can just type vector instead of std::vector
 /*
 * Original PCA9685 Module library sourse: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library
  * 
@@ -81,23 +81,23 @@ bool servoShown[] = {
 };
 
 int allServoMin[] = {
-	0, 0, 0, 0, 0, 0, 0, 0, //	1 to  8
+	0, 0, 0, 0, 0, 0, 0, 0, //	1 to	8
 	0, 0, 0, 0, 0, 0, 0, 0, //	9 to 16
 	0, 0, 0, 0, 0, 0, 0, 0, // 17 to 24
-	0, 0, 0, 0, 0, 0, 0, 0  // 25 to 32	
+	0, 0, 0, 0, 0, 0, 0, 0	// 25 to 32	
 }; 
 //maximum value of each servo
 
 int allServoMax[] = {
-	180, 180, 180, 180, 180, 180, 180, 180,	//	1 to  8 
+	180, 180, 180, 180, 180, 180, 180, 180,	//	1 to	8 
 	180, 180, 180, 180, 180, 180, 180, 180,	//	9 to 16
 	180, 180, 180, 180, 180, 180, 180, 180,	// 17 to 24 
-	180, 180, 180, 180, 180, 180, 180, 180  // 25 to 32 
+	180, 180, 180, 180, 180, 180, 180, 180	// 25 to 32 
 }; 
 // initial position of servos			 
 int allServoPosition[] = {
-	90, 100, 60, 100, 80, 75, 110, 100, //	1 to  8
-	80, 110, 90, 90, 90, 90, 90, 90, //	9 to 16
+	90, 100, 60, 100, 80, 75, 110, 100, //	1 to	8
+	110, 110, 90, 90, 90, 90, 90, 90, //	9 to 16
 	90, 95, 85, 95, 120, 70, 100, 85, // 17 to 24
 	95, 90, 90, 90, 90, 90, 90, 90, // 25 to 32								
 };
@@ -120,11 +120,17 @@ WiFiMulti wifiMulti;
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-const char *ssid = "Android xxa5";
-const char *password = "beb5cb590c36";
+const int wifiStationMode = 0;
+/*for wifi station mode*/
+const char *staSsid = "6_legs_robot",
+           *staPassword = "6_legs_robot";
+IPAddress staLocalIp(192, 168, 54, 87), staGateway(192, 168, 54, 0), staSubnetMask(255, 255, 255, 0);
 
-const char *ssid2 = "toshi";
-const char *password2 = "1357924680";
+/*for wifi client mode*/
+const char *ssid = "Android xxa5",
+           *password = "beb5cb590c36";
+const char *ssid2 = "toshi",
+           *password2 = "1357924680";
 
 WebServer server(80);
 
@@ -198,7 +204,7 @@ void setup() {
 	//initial position of all servos
 	for(int i = 0; i < maximumServo; i++) {
 		if(i < 16) {
-			board1.setPWM(i	  , 0, angleToPulse(allServoPosition[i]) ); 
+			board1.setPWM(i		, 0, angleToPulse(allServoPosition[i]) ); 
 		} else {
 			board2.setPWM(i-15, 0, angleToPulse(allServoPosition[i]) );				
 		}
@@ -212,16 +218,20 @@ void setup() {
 
 	// WiFi.mode(WIFI_STA);
 	// WiFi.begin(ssid, password);
+	if(wifiStationMode){
+		WiFi.softAP(staSsid, staPassword);
+		WiFi.softAPConfig(staLocalIp, staGateway, staSubnetMask);
+	}else{
+		wifiMulti.addAP(ssid, password);
+		wifiMulti.addAP(ssid2, password2);
 
-	wifiMulti.addAP(ssid, password);
-	wifiMulti.addAP(ssid2, password2);
-
-	Serial.println("Connecting Wifi");
-		
-	// Wait for connection
-	while (wifiMulti.run() != WL_CONNECTED) { 
-		delay(500);
-		Serial.print(".");
+		Serial.println("Connecting Wifi");
+			
+		// Wait for connection
+		while (wifiMulti.run() != WL_CONNECTED) { 
+			delay(500);
+			Serial.print(".");
+		}
 	}
 
 	Serial.println("");
@@ -265,7 +275,7 @@ void loop() {
 	// if pushed		
 	if(buttonPushed && 0 <= servoNumber && servoNumber < maximumServo){
 		if(servoNumber < 16) {
-			board1.setPWM( servoNumber   , 0, angleToPulse(allServoPosition[servoNumber]) ); 
+			board1.setPWM( servoNumber	 , 0, angleToPulse(allServoPosition[servoNumber]) ); 
 		} else {
 			board2.setPWM( servoNumber-15, 0, angleToPulse(allServoPosition[servoNumber]) );			 
 		}
@@ -275,13 +285,13 @@ void loop() {
 	if(batchMove){
 		for(int i = 0; i < maximumServo; i++) {
 			if(i < 16) {
-				board1.setPWM(i	  , 0, angleToPulse(allServoPosition[i]) ); 
+				board1.setPWM(i		, 0, angleToPulse(allServoPosition[i]) ); 
 			} else {
 				board2.setPWM(i-15, 0, angleToPulse(allServoPosition[i]) );				
-    		}
+				}
 		}
 	}
-  batchMove = 0;
+	batchMove = 0;
 }
 
 
@@ -299,7 +309,7 @@ void handleServo() {
 	allServo = server.arg("do") == "all" ? 1 : 0;
 
 	int argServo = server.arg("servo").toInt(),
-	    argDeg = server.arg("deg").toInt();
+			argDeg = server.arg("deg").toInt();
 	if(
 		0 <= argServo && argServo < maximumServo &&
 		allServoMin[argServo] <= argDeg && argDeg <= allServoMax[argServo]
@@ -315,7 +325,7 @@ void handleServo() {
 
 vector<String> splitString(String source, String splitter = ""){
 	const int splLen = splitter.length(),
-	          allLen = source.length();
+						allLen = source.length();
 
 	vector<String> result;
 	int indexL = 0, indexR = 0;
@@ -338,7 +348,7 @@ void handleServos(){
 
 	{
 		vector<String> servos_str = splitString(server.arg("servos"), ","),
-					   degs_str = splitString(server.arg("degs"), ",");
+						 degs_str = splitString(server.arg("degs"), ",");
 		for(String str : servos_str){
 			servos.push_back(str.toInt());
 		}
