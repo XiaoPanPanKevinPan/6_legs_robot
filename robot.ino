@@ -96,10 +96,10 @@ int allServoMax[] = {
 }; 
 // initial position of servos			 
 int allServoPosition[] = {
-	90, 100, 50, 120, 80, 85, 120, 100, //	1 to	8
-	105, 119, 90, 90, 90, 90, 90, 90, //	9 to 16
-	90, 85, 100, 95, 120, 65, 100, 85, // 17 to 24
-	95, 90, 90, 90, 90, 90, 90, 90 // 25 to 32								
+	90, 100, 50, 120, 80, 100, 120, 100, //	1 to	8
+	102, 121, 90, 90, 90, 90, 90, 90, //	9 to 16
+	85, 87, 98, 95, 130, 61, 100, 91, // 17 to 24
+	98, 90, 90, 90, 90, 90, 90, 90 // 25 to 32								
 };
 int servoNumber = 100; //servo to move
 int buttonPushed = 0, batchMove = 0;
@@ -114,17 +114,21 @@ int angleToPulse(int ang); //this is prototype of function defined at the end of
 #include <WiFi.h>
 #include <WiFiMulti.h>
 // #include <WiFiClient.h>
+// ref: https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/wifi.html
 
 WiFiMulti wifiMulti;
 
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-const int wifiStationMode = 0;
-/*for wifi station mode*/
-const char *staSsid = "6_legs_robot",
-           *staPassword = "6_legs_robot";
-IPAddress staLocalIp(192, 168, 54, 87), staGateway(192, 168, 54, 0), staSubnetMask(255, 255, 255, 0);
+const int wifiApMode = 0;
+// Station mode / STA: a wifi client device
+// Access Point mode / AP: a wifi hotspot
+
+/*for wifi AP mode*/
+const char *apSsid = "6_legs_robot",
+           *apPassword = "6_legs_robot";
+IPAddress apLocalIp(192, 168, 54, 87), apGateway(192, 168, 54, 0), apSubnetMask(255, 255, 255, 0);
 
 /*for wifi client mode*/
 const char *ssid = "Android xxa5",
@@ -214,9 +218,19 @@ void setup() {
 	delay(10);
 	Serial.println("32 channel Servo test!");
 
-	if(wifiStationMode){
-		WiFi.softAP(staSsid, staPassword);
-		WiFi.softAPConfig(staLocalIp, staGateway, staSubnetMask);
+	if(wifiApMode){
+		WiFi.softAPConfig(apLocalIp, apGateway, apSubnetMask);
+		while(true){
+			if(!WiFi.softAP(apSsid, apPassword)){
+				Serial.println("AP creation failed. Retrying...");
+				delay(500);
+			}else{
+				break;
+			}
+		}
+
+		Serial.print("AP created.\n IP:");
+		Serial.println(WiFi.softAPIP());
 	}else{
 		wifiMulti.addAP(ssid, password);
 		wifiMulti.addAP(ssid2, password2);
@@ -228,13 +242,14 @@ void setup() {
 			delay(500);
 			Serial.print(".");
 		}
+		
+		Serial.println("");
+		Serial.print("Connected to ");
+		Serial.println(WiFi.SSID());
+		Serial.print("IP address: ");
+		Serial.println(WiFi.localIP());
 	}
 
-	Serial.println("");
-	Serial.print("Connected to ");
-	Serial.println(WiFi.SSID());
-	Serial.print("IP address: ");
-	Serial.println(WiFi.localIP());
 
 
 	if (MDNS.begin("robojaxESP32")) {
