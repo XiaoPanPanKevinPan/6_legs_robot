@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html><head>
-	<title>Robot Control - servo by servo</title>
+	<title>Robot Control</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<script type="module">
 		import { createApp } from './node_modules/vue/dist/vue.esm-browser.js';
@@ -23,7 +23,7 @@
 			add = (orig, delt) => orig.map((val, index) => val + delt[index]),
 			mul = (arr1, arr2) => arr1.map((val, index) => val * arr2[index]),
 
-			degCor = deg => Math.asin((2 ** -0.5) * Math.sin(deg / 180 * Math.PI)) / Math.PI * 180 / deg,
+			degCor = deg => deg < 0 ? 1 : deg == 0 ? 0 : Math.asin((2 ** -0.5) * Math.sin(deg / 180 * Math.PI)) / Math.PI * 180 / deg,
 			// middle 2 legs should have different degrees to the four legs at its head and end
 
 			corr = (deg, arr) => mul(mul(arr, axesCorrection), [1,1,1, degCor(deg),1,1, 1,1,1, 1,1,1, degCor(deg),1,1, 1,1,1]),
@@ -82,6 +82,26 @@
 			degs: comp(deg, pb, pb, pb, pb, pb, pb),
 			code: "pb"
 		}, {
+			name: "N",
+			degs: comp(-1, hang, push, hang, push, hang, push),
+			code: "N"
+		}, {
+			name: "O",
+			degs: comp(-1, hb, push, hb, push, hf, push),
+			code: "O"
+		}, {
+			name: "P",
+			degs: comp(-1, pb, push, pb, push, pf, push),
+			code: "P"
+		}, {
+			name: "Q",
+			degs: comp(-1, pb, hang, pb, hang, pb, hang),
+			code: "Q"
+		}, {
+			name: "R",
+			degs: comp(-1, push, hang, push, hang, push, hang),
+			code: "R"
+		}, {
 			name: "hang",
 			degs: comp(deg, hang, hang, hang, hang, hang, hang),
 			code: "HANG"
@@ -106,8 +126,8 @@
 		let curState = "INIT";
 		const execCtrl = code => {
 			curState = code;
-			console.log("Exec", curState);
 			let {degs, servos} = basicCtrls.find(ctrl => ctrl.code == code);
+			console.log("Exec", curState, servos, degs);
 			return fetch(`http://${window.hostIP}/servos?servos=${servos}&degs=${degs}`);
 		}
 
@@ -144,6 +164,40 @@
 								process = "";
 							}
 						})
+					} {
+						const stateOrder = ["READY", "N", "O", "P", "Q", "R", "READY"];
+
+						result.push({
+							name: "逆時針",
+							onClick: async (e) => {
+								process = "counterClockwiseRotate";
+
+								for(let state of stateOrder){
+									await delay(250);
+									execCtrl(state);
+								}
+
+								process = "";
+								return 0;
+							}
+						});
+					} {
+						const stateOrder = ["READY", "R", "Q", "P", "O", "N", "READY"];
+
+						result.push({
+							name: "順時針",
+							onClick: async (e) => {
+								process = "clockwiseRotate";
+
+								for(let state of stateOrder){
+									await delay(250);
+									execCtrl(state);
+								}
+
+								process = "";
+								return 0;
+							}
+						});
 					}
 					return result;
 				})(),
