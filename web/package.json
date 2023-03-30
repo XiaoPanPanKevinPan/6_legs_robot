@@ -4,13 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-	"firstTime": "npm i",
+    "firstTime": "npm i && node ./init.js",
     "start": "npm exec http-server ."
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "http-server": "^14.1.1",
-    "vue": "^3.2.47"
+    "http-server": "^14.1.1"
   }
 }
